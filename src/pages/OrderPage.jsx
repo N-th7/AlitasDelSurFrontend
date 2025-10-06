@@ -4,6 +4,7 @@ import MenuButton from '../components/menuButton/MenuButton';
 import {getProducts} from '../api/productService'; 
 import ItemOrder from '../components/Atoms/ItemOrder';
 import { createOrder } from '../api/orderService';
+import { Modal } from "../components/Atoms/Modal/Modal";
 
 
 
@@ -16,6 +17,8 @@ const OrderPage = () => {
     const [orderItems, setOrderItems] = useState([]);
     const [total, setTotal] = useState(0);
     const [items,setItems] = useState({"products":[orderItems]});
+    const [description, setDescription] = useState("hola");
+    const [open, setOpen] = useState(false);
 
     const handleAddItem = (product) => {
   setOrderItems((prev) => [...prev, { ...product, quantity: 1, productId: product.id}]);
@@ -40,17 +43,20 @@ const handleDeleteItem = (index) => {
 };
 const submitOrder = () => {
     console.log(items)
-    createOrder(items)
-        .then(response => {
-            // Puedes mostrar una notificación de éxito aquí si lo deseas
-            setOrderItems([]);
-            setTotal(0);
-        })
-        .catch(error => {
-            // Maneja el error aquí si lo deseas
-            console.error("Error al enviar el pedido:", error);
-        });
-  console.log("Pedido enviado:", orderItems);
+    createOrder({ ...items, description })
+      .then(response => {
+        // Puedes mostrar una notificación de éxito aquí si lo deseas
+        setDescription("");
+        setOrderItems([]);
+        setTotal(0);
+        setOpen(false);
+        console.log("Pedido enviado:", response.data);
+      })
+      .catch(error => {
+        // Maneja el error aquí si lo deseas
+        console.error("Error al enviar el pedido:", error.data);
+      });
+  console.log("Pedido enviado:", orderItems, description);
 };
 
 useEffect(() => {
@@ -79,11 +85,10 @@ useEffect(() => {
 
     return (
         <div>
-            <UpBar />
             <div className='order-page'>
                 <h1 className="text-[44px] font-bold ml-8">Hacer pedido</h1>
-                <div className='grid grid-cols-2 p-8 w-7/8 m-auto mt-0 mb-0'>
-                    <div className="bg-[#ECBA79] rounded-xl p-6 grid  relative divide-y-2 divide-dashed divide-black w-5/6 m-auto mt-0 mb-0 mr-1"  >
+                <div className='grid md:grid-cols-2 md:p-8 w-full md:w-7/8 m-auto mt-0 mb-0'>
+                    <div className="bg-[#ECBA79] rounded-xl p-6 grid  relative divide-y-2 divide-dashed divide-black w-5/6 m-auto mt-0 mb-0 md:mr-1"  >
                         <div className="mb-20">
                             {orderItems.map((item, index) => (
                             <ItemOrder
@@ -100,12 +105,12 @@ useEffect(() => {
                             <span>{total}</span>
                         </div>
                     </div>
-                    <div className='p-6 w-5/6 m-auto mt-0 mb-0 ml-1 pt-0'>
+                    <div className='p-6 md:w-5/6 m-auto mt-0 mb-0 ml-1 pt-0'>
                         <div>
                             <h2 className="text-[36px] font-bold">Alitas</h2>
                             {
                                 alitas.map(product => (
-                                    <MenuButton key={product.id} label={product.name} onClick={() => handleAddItem(product) } />
+                                    <MenuButton key={product.id} label={product.name} variant= "primary" onClick={() => handleAddItem(product) } />
                                 ))
                             }
                         </div>
@@ -113,7 +118,7 @@ useEffect(() => {
                             <h2 className="text-[36px] font-bold">Costillitas</h2>
                             {
                                 costillitas.map(product => (
-                                    <MenuButton key={product.id} label={product.name} onClick={() => handleAddItem(product)}/>
+                                    <MenuButton key={product.id} label={product.name} variant= "primary" onClick={() => handleAddItem(product)}/>
                                 ))
                             }
                         </div>
@@ -121,7 +126,7 @@ useEffect(() => {
                             <h2 className="text-[36px] font-bold">Extras</h2>
                             {
                                 extras.map(product => (
-                                    <MenuButton key={product.id} label={product.name} onClick={() => handleAddItem(product)} />
+                                    <MenuButton key={product.id} label={product.name} variant= "primary" onClick={() => handleAddItem(product)} />
                                 ))
                             }
                         </div>
@@ -129,12 +134,37 @@ useEffect(() => {
                             <h2 className="text-[36px] font-bold">Refrescos</h2>
                             {
                                 refrescos.map(product => (
-                                    <MenuButton key={product.id} label={product.name} onClick={() => handleAddItem(product)}/>
+                                    <MenuButton key={product.id} label={product.name} variant= "primary" onClick={() => handleAddItem(product)}/>
                                 ))
                             }
                         </div>
-                        <button onClick={submitOrder}>Hacer pedido</button>
+                        <MenuButton label= "Hacer pedido" variant= "secondary" onClick={()=> setOpen(true)}  />
                     </div>
+                     <Modal
+                          open={open}
+                          onClose={() => setOpen(false)}
+                          title="Confirmar pedido"
+                          description= {description}
+                          size="md"
+                          footer={
+                            <>
+
+                              <MenuButton 
+                              label="Cancelar"
+                              variant="secondary"
+                              onClick={() => setOpen(false) }
+                              />
+                              
+                              <MenuButton 
+                                label="Confirmar" 
+                                variant="primary"
+                                onClick={()=>submitOrder()}
+                              />
+                            </>
+                          }
+                    >
+
+                    </Modal>
                 </div>
             </div>
         </div>

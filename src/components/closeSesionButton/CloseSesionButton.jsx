@@ -1,13 +1,9 @@
 import React from 'react';
 
-const CloseSesionButton = () => {
-    const handleLogout = () => {
-        // Add your logout logic here
-        console.log('User logged out');
-    };
+const CloseSesionButton = ({onClick}) => {
 
     return (
-        <button style={styles.container} onClick={handleLogout} className="close-sesion-button">
+        <button style={styles.container} onClick={onClick} className="close-sesion-button">
             Cerrar Sesión
         </button>
     );
