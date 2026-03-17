@@ -1,174 +1,279 @@
-import React, { useEffect, useState } from "react"; 
-import UpBar from '../components/upBar/UpBar';
-import MenuButton from '../components/menuButton/MenuButton';
-import {getProducts} from '../api/productService'; 
-import ItemOrder from '../components/Atoms/ItemOrder';
-import { createOrder } from '../api/orderService';
-import { Modal } from "../components/Atoms/Modal/Modal";
-
+import React, { useEffect, useState } from "react";
+import ProductList from "../components/organism/ProductList";
+import OrderSummary from "../components/organism/OrderSummary";
+import OrderConfirmModal from "../components/organism/OrderConfirmModal";
+import OrderTemplate from "../components/template/OrderTemplate";
+import { useOrder } from "../hooks/useOrder";
+import { getProducts } from "../api/productService";
+import { getCategories } from "../api/categoryService";
+import Button from "../components/Atoms/Button";
+import { Link } from "react-router-dom";
+import Popup from "../components/molecules/Popup";
 
 
 const OrderPage = () => {
-    const [products, setProducts] = useState([]); 
-    const [alitas,setAlitas] = useState([]);
-    const [costillitas,setCostillitas] = useState([]);
-    const [refrescos,setRefrescos] = useState([]);
-    const [extras,setExtras] = useState([]);
-    const [orderItems, setOrderItems] = useState([]);
-    const [total, setTotal] = useState(0);
-    const [items,setItems] = useState({"products":[orderItems]});
-    const [description, setDescription] = useState("hola");
-    const [open, setOpen] = useState(false);
+  const { sendOrder, loading } = useOrder();
 
-    const handleAddItem = (product) => {
-  setOrderItems((prev) => [...prev, { ...product, quantity: 1, productId: product.id}]);
-      setItems({"products":orderItems});
+  // Declarar todos los hooks primero (antes de cualquier early return)
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [orderItems, setOrderItems] = useState([]);
 
-};
+  const [popupMessage, setPopupMessage] = useState("");
+  const [popupType, setPopupType] = useState("success");
+
+  const [description, setDescription] = useState("");
+  const [orderType, setOrderType] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [paymentGiven, setPaymentGiven] = useState("");
+  const [paymentChange, setPaymentChange] = useState("");
+
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+
+  // useEffect también debe ir antes de cualquier early return
+  useEffect(() => {
+    (async () => {
+      setProducts(await getProducts());
+      setCategories(await getCategories());
+    })();
+  }, []);
+  // Obtener usuario del localStorage con manejo seguro de errores
+  let user = null;
+  try {
+    const userData = localStorage.getItem("user");
+    if (userData && userData !== "null" && userData !== "undefined") {
+      user = JSON.parse(userData);
+    }
+  } catch (error) {
+    console.error("Error parsing user data:", error);
+    // Limpiar datos corruptos
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+  }
+
+ {/* // Si no hay usuario válido, redirigir al login
+  if (!user || !user.username) {
+    window.location.href = "/";
+    return <div>Redirigiendo al login...</div>;
+  }
+*/}
+  const total = orderItems.reduce(
+    (acc, item) => acc + item.price * item.quantity,
+    0
+  );
+
+  const confirmOrder = async () => {
+    try {
+      if (orderItems.length === 0) {
+        setPopupType("error");
+        setPopupMessage("Debes agregar productos al pedido.");
+        return;
+      }
+
+      if (!orderType) {
+        setPopupType("error");
+        setPopupMessage("Debes seleccionar un tipo de pedido.");
+        return;
+      }
+
+      const needsInfo = ["delivery", "pedido/mesa", "pedido/llevar"];
+
+      if (needsInfo.includes(orderType)) {
+        if (!customerName.trim() || !customerPhone.trim()) {
+          setPopupType("error");
+          setPopupMessage("Nombre y teléfono son obligatorios.");
+          return;
+        }
+      }
+
+      const payload = {
+        orderType,
+        description,
+        products: orderItems.map((item) => ({
+          productId: item.id,
+          quantity: item.quantity,
+          sauces: item.sauces || [] // Mantener estructura {name, type}
+        })),
+        paymentMethod,
+        paymentGiven: paymentGiven || null,
+        //createdBy: user.username,
+        customerName: customerName || null,
+        customerPhone: customerPhone || null
+      };
+
+      // Debug: Verificar datos antes de enviar
+      console.log('🔍 Verificando datos a enviar:');
+      console.log('📋 OrderType:', orderType);
+      console.log('🌶️ Items con salsas:', orderItems.map(item => ({
+        name: item.name,
+        sauces: item.sauces
+      })));
+      console.log('📦 Payload completo:', JSON.stringify(payload, null, 2));
+
+      setConfirmModalOpen(false);
+
     
-const handleQuantityChange = (index, newQuantity) => {
-  const updatedItems = [...orderItems];
-  updatedItems[index].quantity = newQuantity;
-  setOrderItems(updatedItems);
-      setItems({"products":orderItems});
+      const saved = await sendOrder(payload);
+      console.log("Pedido creado:", saved);
 
-};
+      setPopupType("success");
+      setPopupMessage("Pedido realizado con éxito");
 
-const handleDeleteItem = (index) => {
-  const updatedItems = [...orderItems];
-  updatedItems.splice(index, 1);
-  setOrderItems(updatedItems);
-      setItems({"products":orderItems});
+      setOrderItems([]);
+      setCustomerName("");
+      setCustomerPhone("");
+      setOrderType("");
+      setDescription("");
+      setPaymentMethod("");
+      setPaymentGiven("");
+      setPaymentChange("");
 
-};
-const submitOrder = () => {
-    console.log(items)
-    createOrder({ ...items, description })
-      .then(response => {
-        // Puedes mostrar una notificación de éxito aquí si lo deseas
-        setDescription("");
-        setOrderItems([]);
-        setTotal(0);
-        setOpen(false);
-        console.log("Pedido enviado:", response.data);
-      })
-      .catch(error => {
-        // Maneja el error aquí si lo deseas
-        console.error("Error al enviar el pedido:", error.data);
-      });
-  console.log("Pedido enviado:", orderItems, description);
-};
+      setTimeout(() => setPopupMessage(""), 3000);
 
-useEffect(() => {
-  const newTotal = orderItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  setTotal(newTotal);
-  console.log(orderItems)
-}, [orderItems]);
- 
-  useEffect(() => { 
- const fetchProducts = async () => { 
-   const data = await getProducts(); 
-   setProducts(data); 
-   const alitas = data.filter(product => product.productCategory.name === 'Alitas');
-   const costillitas = data.filter(product => product.productCategory.name === 'Costillas');  
-    const refrescos = data.filter(product => product.productCategory.name === 'Bebidas'); 
-    const extras = data.filter(product => product.productCategory.name === 'Extras');
-    setExtras(extras);
-    setAlitas(alitas);
-    setCostillitas(costillitas);
-    setRefrescos(refrescos);
-   console.log("Productos obtenidos:", data);
- }; 
- 
- fetchProducts(); 
-  }, []); 
+    } catch (error) {
+      setPopupType("error");
+      setPopupMessage("Error al crear el pedido");
+      console.error(error.response?.data || error.message);
+      setPopupType("error");
+      setPopupMessage(error.response?.data?.error || "Error al crear el pedido");
 
-    return (
-        <div>
-            <div className='order-page'>
-                <h1 className="text-[44px] font-bold ml-8">Hacer pedido</h1>
-                <div className='grid md:grid-cols-2 md:p-8 w-full md:w-7/8 m-auto mt-0 mb-0'>
-                    <div className="bg-[#ECBA79] rounded-xl p-6 grid  relative divide-y-2 divide-dashed divide-black w-5/6 m-auto mt-0 mb-0 md:mr-1"  >
-                        <div className="mb-20">
-                            {orderItems.map((item, index) => (
-                            <ItemOrder
-                                key={index}
-                                price={item.price}
-                                quantity={item.quantity}
-                                onQuantityChange={(newQty) => handleQuantityChange(index, newQty)}
-                                deleteItem={() => handleDeleteItem(index)}
-                            />
-                            ))}
-                        </div>
-                        <div className="absolute left-0 bottom-0 w-full p-6 grid grid-cols-2">
-                            <p className="">TOTAL</p>
-                            <span>{total}</span>
-                        </div>
-                    </div>
-                    <div className='p-6 md:w-5/6 m-auto mt-0 mb-0 ml-1 pt-0'>
-                        <div>
-                            <h2 className="text-[36px] font-bold">Alitas</h2>
-                            {
-                                alitas.map(product => (
-                                    <MenuButton key={product.id} label={product.name} variant= "primary" onClick={() => handleAddItem(product) } />
-                                ))
-                            }
-                        </div>
-                        <div>
-                            <h2 className="text-[36px] font-bold">Costillitas</h2>
-                            {
-                                costillitas.map(product => (
-                                    <MenuButton key={product.id} label={product.name} variant= "primary" onClick={() => handleAddItem(product)}/>
-                                ))
-                            }
-                        </div>
-                        <div>
-                            <h2 className="text-[36px] font-bold">Extras</h2>
-                            {
-                                extras.map(product => (
-                                    <MenuButton key={product.id} label={product.name} variant= "primary" onClick={() => handleAddItem(product)} />
-                                ))
-                            }
-                        </div>
-                        <div>
-                            <h2 className="text-[36px] font-bold">Refrescos</h2>
-                            {
-                                refrescos.map(product => (
-                                    <MenuButton key={product.id} label={product.name} variant= "primary" onClick={() => handleAddItem(product)}/>
-                                ))
-                            }
-                        </div>
-                        <MenuButton label= "Hacer pedido" variant= "secondary" onClick={()=> setOpen(true)}  />
-                    </div>
-                     <Modal
-                          open={open}
-                          onClose={() => setOpen(false)}
-                          title="Confirmar pedido"
-                          description= {description}
-                          size="md"
-                          footer={
-                            <>
+      setTimeout(() => setPopupMessage(""), 3000);
+    }
+  };
 
-                              <MenuButton 
-                              label="Cancelar"
-                              variant="secondary"
-                              onClick={() => setOpen(false) }
-                              />
-                              
-                              <MenuButton 
-                                label="Confirmar" 
-                                variant="primary"
-                                onClick={()=>submitOrder()}
-                              />
-                            </>
-                          }
-                    >
+  const addItem = (product) => {
+    const special =
+      product.productCategory?.name === "Alitas" ||
+      product.productCategory?.name === "Costillas";
 
-                    </Modal>
-                </div>
+    setOrderItems((prev) => [
+      ...prev,
+      {
+        ...product,
+        quantity: 1,
+        sauces: special ? [] : []
+      }
+    ]);
+  };
+
+  const updateSauce = (index, sauce) => {
+    const updated = [...orderItems];
+    const item = updated[index];
+
+    if (sauce.type === null) {
+      item.sauces = item.sauces.filter((s) => s.name !== sauce.name);
+    }
+
+    else if (sauce.type === undefined) {
+      const exists = item.sauces.find((s) => s.name === sauce.name);
+      if (!exists) {
+        item.sauces.push({ name: sauce.name, type: 'normal' }); // Agregar type por defecto
+      }
+    }
+
+    else {
+      const exists = item.sauces.find((s) => s.name === sauce.name);
+      if (exists) {
+        exists.type = sauce.type;
+      } else {
+        if (item.sauces.length < 3) {
+          item.sauces.push(sauce);
+        }
+      }
+    }
+
+    setOrderItems(updated);
+  };
+
+  const updateQuantity = (index, quantity) => {
+    const updated = [...orderItems];
+    updated[index].quantity = quantity;
+    setOrderItems(updated);
+  };
+
+  const deleteItem = (index) => {
+    const updated = [...orderItems];
+    updated.splice(index, 1);
+    setOrderItems(updated);
+  };
+
+  return (
+    <>
+      <OrderTemplate
+        left={
+          <OrderSummary
+            items={orderItems}
+            total={total}
+            onQtyChange={updateQuantity}
+            onDelete={deleteItem}
+            onSauceChange={(i, sauce) => updateSauce(i, sauce)}
+          />
+        }
+        right={
+          <>
+            {categories.map((c) => (
+              <ProductList
+                key={c.id}
+                title={c.name}
+                products={products.filter((p) => p.productCategory.name === c.name)}
+                onAdd={addItem}
+              />
+            ))}
+
+            <div className="grid grid-flow-col gap-7">
+              <Button
+                text={loading ? "Enviando..." : "Confirmar"}
+                className="mt-6 w-full bg-green-600 hover:bg-green-700"
+                onClick={() => setConfirmModalOpen(true)}
+                disabled={loading}
+              />
+              <Link to="/menu">
+                <Button
+                  text="Cancelar"
+                  className="mt-6 w-full bg-red-600 hover:bg-red-700"
+                />
+              </Link>
             </div>
-        </div>
-    );
+          </>
+        }
+      />
+
+      <OrderConfirmModal
+        isOpen={confirmModalOpen}
+        onClose={() => setConfirmModalOpen(false)}
+        onConfirm={confirmOrder}
+
+        orderType={orderType}
+        setOrderType={setOrderType}
+
+        customerName={customerName}
+        setCustomerName={setCustomerName}
+
+        customerPhone={customerPhone}
+        setCustomerPhone={setCustomerPhone}
+
+        description={description}
+        setDescription={setDescription}
+
+        paymentMethod={paymentMethod}
+        setPaymentMethod={setPaymentMethod}
+
+        paymentGiven={paymentGiven}
+        setPaymentGiven={setPaymentGiven}
+
+        total={total}
+      />
+
+
+      <Popup
+        message={popupMessage}
+        type={popupType}
+        onClose={() => setPopupMessage("")}
+      />
+    </>
+  );
 };
 
 export default OrderPage;
