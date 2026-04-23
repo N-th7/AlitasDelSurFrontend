@@ -1,5 +1,8 @@
 import api from "./api";
 
+// 🌐 CONFIGURACIÓN DE SERVIDOR DE IMPRESIÓN
+const PRINT_SERVER_URL = process.env.REACT_APP_PRINT_SERVER_URL || ' https://semipaganish-rheba-unbrilliantly.ngrok-free.dev' || 'http://localhost:3001';
+
 export const createOrder = async (orderData) => {
   const res = await api.post("/orders", orderData);
   return res.data;
@@ -37,15 +40,15 @@ export const getOrderById = async (id) => {
 
 export const printOrder = async (orderData) => {
   try {
-    // Intentar con el backend principal primero
+    // Intentar backend principal primero
     const res = await api.post("/print", orderData);
     return res.data;
   } catch (primaryError) {
-    console.log('⚠️ Backend principal no disponible, intentando servidor local...');
+    console.log('⚠️ Backend principal no disponible, usando servidor de impresión...');
     
     try {
-      // Fallback al servidor local de desarrollo
-      const localResponse = await fetch('http://localhost:3001/print', {
+      // Fallback al servidor de impresión (ngrok o local)
+      const printResponse = await fetch(`${PRINT_SERVER_URL}/print`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -53,26 +56,24 @@ export const printOrder = async (orderData) => {
         body: JSON.stringify(orderData)
       });
       
-      if (!localResponse.ok) {
-        throw new Error(`Error del servidor local: ${localResponse.status}`);
+      if (!printResponse.ok) {
+        throw new Error(`Error servidor impresión: ${printResponse.status}`);
       }
       
-      const localData = await localResponse.json();
-      console.log('✅ Impresión exitosa usando servidor local');
+      const data = await printResponse.json();
+      console.log('✅ Impresión exitosa via servidor de impresión');
       
       return {
-        ...localData,
-        method: 'local-dev-server',
+        ...data,
+        method: 'print-server',
         fallback: true
       };
       
-    } catch (localError) {
+    } catch (printError) {
       console.error('❌ Error en ambos servidores:', {
         primary: primaryError.message,
-        local: localError.message
+        print: printError.message
       });
-      
-      // Retornar el error original del backend principal
       throw primaryError;
     }
   }
@@ -109,10 +110,10 @@ export const getPrintQueue = async (status = 'all', limit = 20) => {
   }
 };
 
-// 🧪 FUNCIÓN PARA PROBAR IMPRESORA (SOLO DESARROLLO)
+// 🧪 FUNCIONES DE PRUEBA PARA SERVIDOR DE IMPRESIÓN
 export const testPrinter = async () => {
   try {
-    const response = await fetch('http://localhost:3001/test-printer', {
+    const response = await fetch(`${PRINT_SERVER_URL}/test-printer`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -124,7 +125,7 @@ export const testPrinter = async () => {
     }
     
     const data = await response.json();
-    console.log('✅ Prueba de impresora exitosa');
+    console.log('✅ Prueba de impresora exitosa via', PRINT_SERVER_URL);
     return data;
     
   } catch (error) {
@@ -133,10 +134,9 @@ export const testPrinter = async () => {
   }
 };
 
-// 🔍 FUNCIÓN PARA VERIFICAR SERVIDOR LOCAL
 export const checkLocalServer = async () => {
   try {
-    const response = await fetch('http://localhost:3001/test', {
+    const response = await fetch(`${PRINT_SERVER_URL}/test`, {
       method: 'GET'
     });
     
@@ -147,12 +147,14 @@ export const checkLocalServer = async () => {
     const data = await response.json();
     return {
       available: true,
+      url: PRINT_SERVER_URL,
       ...data
     };
     
   } catch (error) {
     return {
       available: false,
+      url: PRINT_SERVER_URL,
       error: error.message
     };
   }
