@@ -99,17 +99,6 @@ export const getPrintQueueStatus = async (queueId) => {
   }
 };
 
-// 🖨️ SERVICIOS DE COLA DE IMPRESIÓN
-export const getPrintQueueStatus = async (queueId) => {
-  try {
-    const res = await api.get(`/print/queue/status/${queueId}`);
-    return res.data;
-  } catch (err) {
-    console.error("Error obteniendo estado de cola:", err);
-    throw err;
-  }
-};
-
 export const getPrintQueue = async (status = 'all', limit = 20) => {
   try {
     const res = await api.get(`/print/queue?status=${status}&limit=${limit}`);
