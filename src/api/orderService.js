@@ -1,7 +1,7 @@
 import api from "./api";
 
-// 🌐 CONFIGURACIÓN DE SERVIDOR DE IMPRESIÓN
-const PRINT_SERVER_URL = process.env.REACT_APP_PRINT_SERVER_URL || ' https://semipaganish-rheba-unbrilliantly.ngrok-free.dev' || 'http://localhost:3001';
+// � CONFIGURACIÓN DE SERVIDOR DE IMPRESIÓN - RED LOCAL
+const PRINT_SERVER_URL = process.env.REACT_APP_PRINT_SERVER_URL || 'http://192.168.100.7:3001';
 
 export const createOrder = async (orderData) => {
   const res = await api.post("/orders", orderData);
