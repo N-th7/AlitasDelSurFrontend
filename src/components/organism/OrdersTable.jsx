@@ -13,6 +13,7 @@ export default function OrdersTable({ orders, onStatusChange, onReprint }) {
             <th className="px-4 py-2">Tipo</th>
             <th className="px-4 py-2">Total</th>
             <th className="px-4 py-2">Estado</th>
+            <th className="px-4 py-2">Impresión</th>
             <th className="px-4 py-2">Cambiar</th>
             <th className="px-4 py-2">Acciones</th>
           </tr>

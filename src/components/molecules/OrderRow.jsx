@@ -1,6 +1,7 @@
 import StatusBadge from "../Atoms/StatusBadge";
 import StatusSelector from "../Atoms/StatusSelector";
 import Button from "../Atoms/Button";
+import PrintStatus from "../Atoms/PrintStatus";
 
 export default function OrderRow({ order, onStatusChange, onReprint }) {
   return (
@@ -24,10 +25,40 @@ export default function OrderRow({ order, onStatusChange, onReprint }) {
           </div>
         )}
       </td>
+      
       <td className="px-4 py-2 font-bold">{order.totalPrice} Bs</td>
 
       <td className="px-4 py-2">
         <StatusBadge status={order.status} />
+      </td>
+
+      <td className="px-4 py-2">
+        <div className="space-y-1">
+          {/* Estado de impresión */}
+          {order.queueId ? (
+            <PrintStatus queueId={order.queueId} />
+          ) : order.printed === true ? (
+            <div className="flex items-center space-x-1 text-sm text-green-600">
+              <span>✅</span>
+              <span>Impreso</span>
+            </div>
+          ) : order.printed === false ? (
+            <div className="flex items-center space-x-1 text-sm text-red-600">
+              <span>❌</span>
+              <span>Error impresión</span>
+              {order.printError && (
+                <span className="text-xs text-gray-500 truncate max-w-xs" title={order.printError}>
+                  ({order.printError})
+                </span>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center space-x-1 text-sm text-gray-500">
+              <span>⏳</span>
+              <span>Pendiente</span>
+            </div>
+          )}
+        </div>
       </td>
 
       <td className="px-4 py-2">

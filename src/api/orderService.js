@@ -14,10 +14,12 @@ export const updateOrderStatus = async (id, status) => {
     throw e;
   }
 };
+
 export const getOrders = async () => {
   const res = await api.get("/orders");
   return res.data;
 };
+
 export const getTodayOrders = async () => {
   const res = await api.get("/orderstoday");
   return res.data;
@@ -44,6 +46,27 @@ export const printClosingReport = async (reportData) => {
     return res.data;
   } catch (err) {
     console.error("Error imprimiendo reporte de cierre:", err);
+    throw err;
+  }
+};
+
+// 🖨️ SERVICIOS DE COLA DE IMPRESIÓN
+export const getPrintQueueStatus = async (queueId) => {
+  try {
+    const res = await api.get(`/print/queue/status/${queueId}`);
+    return res.data;
+  } catch (err) {
+    console.error("Error obteniendo estado de cola:", err);
+    throw err;
+  }
+};
+
+export const getPrintQueue = async (status = 'all', limit = 20) => {
+  try {
+    const res = await api.get(`/print/queue?status=${status}&limit=${limit}`);
+    return res.data;
+  } catch (err) {
+    console.error("Error obteniendo cola de impresión:", err);
     throw err;
   }
 };
