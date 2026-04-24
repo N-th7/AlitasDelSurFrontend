@@ -1,24 +1,8 @@
 import api from "./api";
 
-// 🌐 CONFIGURACIÓN INTELIGENTE DE IMPRESIÓN
-const detectNetworkAndGetPrintUrl = () => {
-  const hostname = window.location.hostname;
-  const isLocalNetwork = hostname.includes('192.168.') || hostname.includes('localhost') || hostname === '127.0.0.1';
-  
-  if (isLocalNetwork) {
-    // Usuario en red local - usar servidor local directo
-    return 'http://192.168.100.7:3001';
-  } else {
-    // Usuario remoto (Hostinger) - necesita ngrok o servidor remoto
-    return process.env.REACT_APP_PRINT_SERVER_URL || null;
-  }
-};
-
-// 🔍 Detectar si estamos en red local o remota
-const isInLocalNetwork = () => {
-  const hostname = window.location.hostname;
-  return hostname.includes('192.168.') || hostname.includes('localhost') || hostname === '127.0.0.1';
-};
+// � CONFIGURACIÓN SIMPLE - SIEMPRE RED LOCAL
+// Usar servidor local directo (sin detección automática)
+const PRINT_SERVER_URL = 'http://192.168.100.7:3001';
 
 export const createOrder = async (orderData) => {
   const res = await api.post("/orders", orderData);
@@ -57,8 +41,7 @@ export const getOrderById = async (id) => {
 
 export const printOrder = async (orderData) => {
   console.log('🖨️ Iniciando impresión...', { 
-    hostname: window.location.hostname,
-    isLocal: isInLocalNetwork() 
+    serverUrl: PRINT_SERVER_URL 
   });
 
   try {
@@ -68,21 +51,11 @@ export const printOrder = async (orderData) => {
     return res.data;
   } catch (primaryError) {
     console.log('⚠️ Backend principal no disponible:', primaryError.message);
-    
-    // Determinar URL de servidor de impresión según la red
-    const printServerUrl = detectNetworkAndGetPrintUrl();
-    
-    if (!printServerUrl) {
-      // Usuario remoto sin configuración de servidor remoto
-      console.error('❌ Acceso remoto detectado pero no hay servidor de impresión configurado');
-      throw new Error('Para imprimir desde ubicaciones remotas, necesitas configurar ngrok o acceder desde la red local del restaurante.');
-    }
-    
-    console.log('🔄 Usando servidor de impresión:', printServerUrl);
+    console.log('🔄 Usando servidor de impresión local:', PRINT_SERVER_URL);
     
     try {
-      // Fallback al servidor de impresión apropiado
-      const printResponse = await fetch(`${printServerUrl}/print`, {
+      // Fallback al servidor local SIEMPRE
+      const printResponse = await fetch(`${PRINT_SERVER_URL}/print`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -95,24 +68,17 @@ export const printOrder = async (orderData) => {
       }
       
       const data = await printResponse.json();
-      console.log('✅ Impresión exitosa via servidor de impresión');
+      console.log('✅ Impresión exitosa via servidor local');
       
       return {
         ...data,
-        method: 'print-server',
-        fallback: true,
-        networkType: isInLocalNetwork() ? 'local' : 'remote'
+        method: 'local-server',
+        fallback: true
       };
       
     } catch (printError) {
-      console.error('❌ Error en servidor de impresión:', printError.message);
-      
-      // Mensaje específico según el tipo de red
-      if (isInLocalNetwork()) {
-        throw new Error('Error conectando con servidor de impresión local. Verifica que esté ejecutándose en puerto 3001.');
-      } else {
-        throw new Error('Error conectando con servidor de impresión remoto. Verifica la configuración de ngrok.');
-      }
+      console.error('❌ Error en servidor local:', printError.message);
+      throw new Error(`No se pudo conectar al servidor de impresión local (${PRINT_SERVER_URL}). Verifica que esté ejecutándose y que estés en la red WiFi del restaurante.`);
     }
   }
 };
@@ -150,19 +116,12 @@ export const getPrintQueue = async (status = 'all', limit = 20) => {
 
 // 🧪 FUNCIONES DE PRUEBA PARA SERVIDOR DE IMPRESIÓN
 export const testPrinter = async () => {
-  const printServerUrl = detectNetworkAndGetPrintUrl();
-  
-  if (!printServerUrl) {
-    throw new Error('No hay servidor de impresión disponible para tu ubicación. Accede desde la red local del restaurante o configura acceso remoto.');
-  }
-  
   console.log('🧪 Probando impresora...', { 
-    url: printServerUrl,
-    isLocal: isInLocalNetwork() 
+    url: PRINT_SERVER_URL 
   });
   
   try {
-    const response = await fetch(`${printServerUrl}/test-printer`, {
+    const response = await fetch(`${PRINT_SERVER_URL}/test-printer`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -174,33 +133,21 @@ export const testPrinter = async () => {
     }
     
     const data = await response.json();
-    console.log('✅ Prueba de impresora exitosa via', printServerUrl);
+    console.log('✅ Prueba de impresora exitosa via', PRINT_SERVER_URL);
     return {
       ...data,
-      networkType: isInLocalNetwork() ? 'local' : 'remote',
-      serverUrl: printServerUrl
+      serverUrl: PRINT_SERVER_URL
     };
     
   } catch (error) {
     console.error('❌ Error probando impresora:', error.message);
-    throw error;
+    throw new Error(`No se pudo conectar al servidor de impresión local (${PRINT_SERVER_URL}). Verifica que esté ejecutándose y que estés en la red WiFi del restaurante.`);
   }
 };
 
 export const checkLocalServer = async () => {
-  const printServerUrl = detectNetworkAndGetPrintUrl();
-  
-  if (!printServerUrl) {
-    return {
-      available: false,
-      url: null,
-      error: 'No hay servidor de impresión disponible para tu ubicación',
-      networkType: isInLocalNetwork() ? 'local' : 'remote'
-    };
-  }
-  
   try {
-    const response = await fetch(`${printServerUrl}/test`, {
+    const response = await fetch(`${PRINT_SERVER_URL}/test`, {
       method: 'GET'
     });
     
@@ -211,17 +158,15 @@ export const checkLocalServer = async () => {
     const data = await response.json();
     return {
       available: true,
-      url: printServerUrl,
-      networkType: isInLocalNetwork() ? 'local' : 'remote',
+      url: PRINT_SERVER_URL,
       ...data
     };
     
   } catch (error) {
     return {
       available: false,
-      url: printServerUrl,
-      error: error.message,
-      networkType: isInLocalNetwork() ? 'local' : 'remote'
+      url: PRINT_SERVER_URL,
+      error: error.message
     };
   }
 };
@@ -229,7 +174,7 @@ export const checkLocalServer = async () => {
 export const reprintOrder = async (order) => {
   console.log('🔄 Reimprimiendo orden...', { 
     orderNumber: order.orderNumber || order.id,
-    isLocal: isInLocalNetwork() 
+    serverUrl: PRINT_SERVER_URL
   });
   
   try {
@@ -239,16 +184,10 @@ export const reprintOrder = async (order) => {
     return res.data;
   } catch (primaryError) {
     console.log('⚠️ Backend principal no disponible para reimpresión:', primaryError.message);
-    
-    // Usar misma lógica que printOrder
-    const printServerUrl = detectNetworkAndGetPrintUrl();
-    
-    if (!printServerUrl) {
-      throw new Error('Para reimprimir desde ubicaciones remotas, necesitas configurar ngrok o acceder desde la red local del restaurante.');
-    }
+    console.log('🔄 Usando servidor de impresión local:', PRINT_SERVER_URL);
     
     try {
-      const printResponse = await fetch(`${printServerUrl}/print`, {
+      const printResponse = await fetch(`${PRINT_SERVER_URL}/print`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -261,17 +200,16 @@ export const reprintOrder = async (order) => {
       }
       
       const data = await printResponse.json();
-      console.log('✅ Reimpresión exitosa via servidor de impresión');
+      console.log('✅ Reimpresión exitosa via servidor local');
       return {
         ...data,
-        method: 'print-server',
-        fallback: true,
-        networkType: isInLocalNetwork() ? 'local' : 'remote'
+        method: 'local-server',
+        fallback: true
       };
       
     } catch (printError) {
       console.error('❌ Error reimprimiendo:', printError.message);
-      throw printError;
+      throw new Error(`No se pudo conectar al servidor de impresión local. Verifica que esté ejecutándose.`);
     }
   }
 };
