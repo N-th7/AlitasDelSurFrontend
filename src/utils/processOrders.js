@@ -33,7 +33,7 @@ export function processOrders(orders = []) {
         stats.qrTotal += Number(order.totalPrice);
       }
 
-      order.orderItems.forEach(item => {
+      (order.items || []).forEach(item => {
         if (!productMap[item.name]) {
           productMap[item.name] = {
             product: item.name,
@@ -43,7 +43,7 @@ export function processOrders(orders = []) {
         }
 
         productMap[item.name].quantity += item.quantity;
-        productMap[item.name].total += Number(item.subtotal);
+        productMap[item.name].total += Number(item.subtotal || item.price * item.quantity || 0);
       });
 
       const cashier = order.createdBy || "Sin nombre";
