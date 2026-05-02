@@ -48,7 +48,26 @@ export const printOrder = async (orderData) => {
     // Intentar backend principal primero
     const res = await api.post("/print", orderData);
     console.log('✅ Impresión exitosa via backend principal');
-    return res.data;
+    
+    // 🌐 MANEJAR RESPUESTA HTML PARA HOSTINGER
+    const result = res.data;
+    if (result.success && result.printUrl) {
+      console.log('📞 HTML generado para impresión:', result.printUrl);
+      
+      // Abrir HTML en nueva ventana para impresión
+      const printWindow = window.open(result.printUrl, '_blank', 
+        'width=400,height=600,scrollbars=yes,resizable=yes');
+        
+      if (printWindow) {
+        console.log('✅ Ventana de impresión abierta correctamente');
+      } else {
+        console.warn('⚠️ Popup bloqueado, abriendo en misma pestaña');
+        window.open(result.printUrl, '_blank');
+      }
+    }
+    
+    return result;
+    
   } catch (primaryError) {
     console.log('⚠️ Backend principal no disponible:', primaryError.message);
     console.log('🔄 Usando servidor de impresión local:', PRINT_SERVER_URL);
@@ -181,7 +200,26 @@ export const reprintOrder = async (order) => {
     // Intentar backend principal primero
     const res = await api.post("/print", order);
     console.log('✅ Reimpresión exitosa via backend principal');
-    return res.data;
+    
+    // 🌐 MANEJAR RESPUESTA HTML PARA HOSTINGER
+    const result = res.data;
+    if (result.success && result.printUrl) {
+      console.log('📞 HTML generado para reimpresión:', result.printUrl);
+      
+      // Abrir HTML en nueva ventana para impresión
+      const printWindow = window.open(result.printUrl, '_blank', 
+        'width=400,height=600,scrollbars=yes,resizable=yes');
+        
+      if (printWindow) {
+        console.log('✅ Ventana de reimpresión abierta correctamente');
+      } else {
+        console.warn('⚠️ Popup bloqueado, abriendo en misma pestaña');
+        window.open(result.printUrl, '_blank');
+      }
+    }
+    
+    return result;
+    
   } catch (primaryError) {
     console.log('⚠️ Backend principal no disponible para reimpresión:', primaryError.message);
     console.log('🔄 Usando servidor de impresión local:', PRINT_SERVER_URL);

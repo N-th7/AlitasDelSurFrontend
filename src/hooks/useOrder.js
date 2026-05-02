@@ -26,6 +26,23 @@ export const useOrder = () => {
     try {
       setLoading(true);
       const savedOrder = await createOrder(orderData);
+      
+      // 🖨️ MANEJAR AUTO-IMPRESIÓN CON HTML
+      if (savedOrder.printInfo && savedOrder.printInfo.success && savedOrder.printInfo.printUrl) {
+        console.log('🖨️ Auto-abriendo HTML de impresión...');
+        
+        // Esperar un momento para que la página se estabilice
+        setTimeout(() => {
+          const printWindow = window.open(savedOrder.printInfo.printUrl, '_blank', 
+            'width=400,height=600,scrollbars=yes,resizable=yes');
+            
+          if (!printWindow) {
+            console.warn('⚠️ Popup bloqueado, usuario debe imprimir manualmente');
+            alert('Popup bloqueado. Haz clic en "Reimprimir" en la lista de pedidos para imprimir.');
+          }
+        }, 500);
+      }
+      
       return savedOrder;
     } catch (err) {
       console.error("Error creando pedido:", err);
@@ -114,8 +131,18 @@ export const useOrder = () => {
   const printAgain = async (order) => {
     try {
       setLoading(true);
-      await reprintOrder(order);
-      return true;
+      const result = await reprintOrder(order);
+      
+      // 🖨️ El servicio ya maneja la apertura de ventana
+      // Solo necesitamos verificar el resultado
+      if (result && result.success) {
+        console.log('✅ Reimpresión procesada correctamente');
+        return true;
+      } else {
+        console.error('❌ Error en reimpresión:', result?.error || 'Error desconocido');
+        return false;
+      }
+      
     } catch (err) {
       console.error("Error al reimprimir:", err);
       setError("No se pudo reimprimir la ficha");
