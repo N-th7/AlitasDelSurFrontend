@@ -105,7 +105,25 @@ export const printOrder = async (orderData) => {
 export const printClosingReport = async (reportData) => {
   try {
     const res = await api.post("/print/report", reportData);
-    return res.data;
+    const result = res.data;
+    
+    // 🌐 MANEJAR RESPUESTA HTML PARA HOSTINGER - IGUAL QUE LOS TICKETS
+    if (result.success && result.printUrl) {
+      console.log('📊 Reporte HTML generado para impresión:', result.printUrl);
+      
+      // Abrir HTML en nueva ventana para impresión AUTOMÁTICAMENTE
+      const printWindow = window.open(result.printUrl, '_blank', 
+        'width=800,height=900,scrollbars=yes,resizable=yes');
+        
+      if (printWindow) {
+        console.log('✅ Ventana de reporte abierta correctamente');
+      } else {
+        console.warn('⚠️ Popup bloqueado, abriendo en misma pestaña');
+        window.open(result.printUrl, '_blank');
+      }
+    }
+    
+    return result;
   } catch (err) {
     console.error("Error imprimiendo reporte de cierre:", err);
     throw err;
