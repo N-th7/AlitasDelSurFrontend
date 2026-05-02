@@ -9,8 +9,8 @@ export default function OrderRow({ order, onStatusChange, onReprint }) {
       <td className="px-4 py-2 font-bold text-lg">#{order.numberOrder}</td>
 
       <td className="px-4 py-2">
-        {order.orderItems.map((p) => (
-          <div key={p.productId}>
+        {(order.items || []).map((p, index) => (
+          <div key={p.productId || index}>
             {p.quantity}× {p.name}
           </div>
         ))}
@@ -32,34 +32,7 @@ export default function OrderRow({ order, onStatusChange, onReprint }) {
         <StatusBadge status={order.status} />
       </td>
 
-      <td className="px-4 py-2">
-        <div className="space-y-1">
-          {/* Estado de impresión */}
-          {order.queueId ? (
-            <PrintStatus queueId={order.queueId} />
-          ) : order.printed === true ? (
-            <div className="flex items-center space-x-1 text-sm text-green-600">
-              <span>✅</span>
-              <span>Impreso</span>
-            </div>
-          ) : order.printed === false ? (
-            <div className="flex items-center space-x-1 text-sm text-red-600">
-              <span>❌</span>
-              <span>Error impresión</span>
-              {order.printError && (
-                <span className="text-xs text-gray-500 truncate max-w-xs" title={order.printError}>
-                  ({order.printError})
-                </span>
-              )}
-            </div>
-          ) : (
-            <div className="flex items-center space-x-1 text-sm text-gray-500">
-              <span>⏳</span>
-              <span>Pendiente</span>
-            </div>
-          )}
-        </div>
-      </td>
+
 
       <td className="px-4 py-2">
         <StatusSelector

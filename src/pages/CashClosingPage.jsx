@@ -24,6 +24,7 @@ export default function CierreCajaPage() {
 
         const processed = processOrders(orders);
         setStats(processed);
+        console.log("📊 Estadísticas procesadas:", processed);
         setLoading(false);
     };
 

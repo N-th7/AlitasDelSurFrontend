@@ -73,7 +73,11 @@ export const useOrder = () => {
     try {
       setLoading(true);
       const data = await getTodayOrders();
-      const sorted = data.sort((a, b) => b.numberOrder - a.numberOrder);
+      console.log('📋 Datos recibidos del backend:', data);
+      
+      // Extraer el array de órdenes de la respuesta
+      const ordersArray = data.orders || [];
+      const sorted = ordersArray.sort((a, b) => b.numberOrder - a.numberOrder);
 
       setOrders(sorted);
       return sorted;
