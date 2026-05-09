@@ -9,23 +9,32 @@ export default function CierreCajaPage() {
 
     const [stats, setStats] = useState(null);
     const [selectedDate, setSelectedDate] = useState("");
+    const [activeDate, setActiveDate] = useState("");
     const [loading, setLoading] = useState(true);
 
     const load = async (date = null) => {
-        setLoading(true);
+        try {
+            setLoading(true);
 
-        let orders;
+            let orders;
 
-        if (!date) {
-            orders = await loadTodayOrders();
-        } else {
-            orders = await loadOrdersByDate(date);
+            if (!date) {
+                orders = await loadTodayOrders();
+                setActiveDate("");
+            } else {
+                orders = await loadOrdersByDate(date);
+                setActiveDate(date);
+            }
+
+            const processed = processOrders(Array.isArray(orders) ? orders : []);
+            setStats(processed);
+            console.log("📊 Estadísticas procesadas:", processed);
+        } catch (error) {
+            console.error("❌ Error cargando cierre de caja:", error);
+            setStats(processOrders([]));
+        } finally {
+            setLoading(false);
         }
-
-        const processed = processOrders(orders);
-        setStats(processed);
-        console.log("📊 Estadísticas procesadas:", processed);
-        setLoading(false);
     };
 
     useEffect(() => {
@@ -35,7 +44,20 @@ export default function CierreCajaPage() {
     const handleDateChange = (e) => {
         const date = e.target.value;
         setSelectedDate(date);
-        load(date);
+    };
+
+    const handleSearchDate = () => {
+        if (!selectedDate) {
+            load();
+            return;
+        }
+
+        load(selectedDate);
+    };
+
+    const handleClearDate = () => {
+        setSelectedDate("");
+        load();
     };
 
     if (loading || !stats) return <div className="p-6">Cargando...</div>;
@@ -56,13 +78,25 @@ export default function CierreCajaPage() {
 
                 </div>
                 <Button
+                    text="Buscar"
+                    variant="primary"
+                    className="px-4 py-2"
+                    onClick={handleSearchDate}
+                />
+                <Button
+                    text="Limpiar"
+                    variant="secondary"
+                    className="px-4 py-2"
+                    onClick={handleClearDate}
+                />
+                <Button
                     text="Imprimir reporte"
                     variant="success"
                     className="px-4 py-2"
                     onClick={() => printReport({
                         ...stats,
-                        date: selectedDate
-                            ? `${selectedDate}T00:00:00`  
+                        date: activeDate
+                            ? `${activeDate}T00:00:00`
                             : new Date().toISOString()   
                     })}
                 />
