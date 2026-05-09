@@ -86,6 +86,7 @@ export const useOrder = () => {
     } catch (err) {
       console.error("Error cargando pedidos por fecha:", err);
       setError("No se pudieron cargar los pedidos de la fecha indicada");
+      return [];
     } finally {
       setLoading(false);
     }
@@ -112,6 +113,7 @@ export const useOrder = () => {
     } catch (err) {
       console.error("Error cargando pedidos de hoy:", err);
       setError("No se pudieron cargar los pedidos de hoy");
+      return [];
     } finally {
       setLoading(false);
     }
