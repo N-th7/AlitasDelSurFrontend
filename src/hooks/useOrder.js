@@ -58,7 +58,9 @@ export const useOrder = () => {
       setLoading(true);
       const data = await getOrders();
 
-      const sorted = data.sort((a, b) => b.numberOrder - a.numberOrder);
+      // Extraer el array de órdenes de la respuesta
+      const ordersArray = data.orders || data || [];
+      const sorted = ordersArray.sort((a, b) => b.numberOrder - a.numberOrder);
 
       setOrders(sorted);
       return sorted;
@@ -75,7 +77,10 @@ export const useOrder = () => {
     try {
       setLoading(true);
       const data = await getOrdersByDate(date);
-      const sorted = data.sort((a, b) => b.numberOrder - a.numberOrder);  
+      
+      // Extraer el array de órdenes de la respuesta
+      const ordersArray = data.orders || data || [];
+      const sorted = ordersArray.sort((a, b) => b.numberOrder - a.numberOrder);  
       setOrders(sorted);
       return sorted;
     } catch (err) {
@@ -94,6 +99,12 @@ export const useOrder = () => {
       
       // Extraer el array de órdenes de la respuesta
       const ordersArray = data.orders || [];
+      
+      // Log para verificar createdAtFormatted
+      ordersArray.forEach(order => {
+        console.log(`  ⏰ Orden #${order.numberOrder}: ${order.createdAtFormatted || 'NO FORMATEADA'}`);
+      });
+      
       const sorted = ordersArray.sort((a, b) => b.numberOrder - a.numberOrder);
 
       setOrders(sorted);
