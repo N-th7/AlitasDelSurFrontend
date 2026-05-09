@@ -100,9 +100,9 @@ export const useOrder = () => {
       // Extraer el array de órdenes de la respuesta
       const ordersArray = data.orders || [];
       
-      // Log para verificar createdAtFormatted
+      // Log para verificar createdAt
       ordersArray.forEach(order => {
-        console.log(`  ⏰ Orden #${order.numberOrder}: ${order.createdAtFormatted || 'NO FORMATEADA'}`);
+        console.log(`  ⏰ Orden #${order.numberOrder}: ${order.createdAt || 'NO FORMATEADA'}`);
       });
       
       const sorted = ordersArray.sort((a, b) => b.numberOrder - a.numberOrder);
